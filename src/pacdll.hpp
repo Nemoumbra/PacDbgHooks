@@ -11,3 +11,4 @@
 #endif
 
 extern "C" PACDLL_API auto Init() -> void;
+extern "C" PACDLL_API auto Term() -> void;

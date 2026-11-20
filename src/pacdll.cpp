@@ -83,8 +83,6 @@ public:
             return;
         }
 
-        ::OutputDebugStringW(L"display render display please please please please\n");
-
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
@@ -297,8 +295,6 @@ auto WINAPI DllMain(HINSTANCE instance, DWORD dw_reason, [[maybe_unused]] LPVOID
 
     if (dw_reason == DLL_PROCESS_DETACH) {
         if (g_hDllInterfaceThread) {
-            ::SetEvent(g_ThreadStopEvent);
-            ::WaitForSingleObject(g_hDllInterfaceThread, INFINITE);
             ::CloseHandle(g_ThreadStopEvent);
             ::CloseHandle(g_hDllInterfaceThread);
         }
@@ -314,4 +310,17 @@ auto Init() -> void {
     g_ThreadStopEvent = ::CreateEventW(nullptr, TRUE, FALSE, nullptr);
     g_hDllInterfaceThread =
         ::CreateThread(nullptr, NULL, reinterpret_cast<LPTHREAD_START_ROUTINE>(ThreadEntry), nullptr, NULL, nullptr);
+}
+
+auto Term() -> void {
+    ::SetEvent(g_ThreadStopEvent);
+    ::OutputDebugStringW(L"stopping the window thread");
+    ::WaitForSingleObject(g_hDllInterfaceThread, INFINITE);
+    ::CloseHandle(g_ThreadStopEvent);
+    ::CloseHandle(g_hDllInterfaceThread);
+
+    g_ThreadStopEvent = nullptr;
+    g_hDllInterfaceThread = nullptr;
+
+    ::OutputDebugStringW(L"teardown complete");
 }

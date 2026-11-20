@@ -92,6 +92,11 @@ private:
     class WindowClass final {
     public:
         WindowClass(HINSTANCE instance, std::wstring_view class_name) {
+            WNDCLASSEXW prev_wcex = {};
+            if (0 != ::GetClassInfoExW(instance, class_name.data(), &prev_wcex)) {
+                return;
+            }
+
             const WNDCLASSEXW wcex = {
                 .cbSize = sizeof(WNDCLASSEXW),
                 .style = CS_HREDRAW | CS_VREDRAW,
