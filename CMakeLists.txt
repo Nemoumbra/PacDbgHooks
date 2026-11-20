@@ -2,9 +2,7 @@ cmake_minimum_required(VERSION 3.28)
 project(pacdll VERSION 1.0.0)
 
 set(CMAKE_CXX_STANDARD 23)
-
 set(CMAKE_POLICY_DEFAULT_CMP0091 NEW)
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 # libraries
 include_directories(${CMAKE_SOURCE_DIR}/src)
@@ -24,12 +22,6 @@ add_library(imgui STATIC
 target_include_directories(imgui PUBLIC
     ${CMAKE_SOURCE_DIR}/third_party/imgui
     ${CMAKE_SOURCE_DIR}/third_party/imgui/backends
-)
-
-add_compile_definitions(
-    WIN32_LEAN_AND_MEAN
-    NOMINMAX
-    GIT_COMMIT_ID="${GIT_COMMIT_ID}"
 )
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
@@ -65,7 +57,13 @@ else()
 endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_WARNING_AS_ERROR ON)
-target_compile_definitions(${PROJECT_NAME} PRIVATE COMPILER_STRING="${COMPILER_STRING}" UNICODE _UNICODE PACDLL_EXPORTS)
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    WIN32_LEAN_AND_MEAN
+    NOMINMAX
+    UNICODE
+    _UNICODE
+    PACDLL_EXPORTS
+)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     shell32
