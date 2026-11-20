@@ -2,7 +2,7 @@
     "editor.formatOnSave": true,
     "editor.inlayHints.enabled": "offUnlessPressed",
     "clangd.arguments": [
-        "--compile-commands-dir=${workspaceFolder}/build",
+        "--compile-commands-dir=${workspaceFolder}/out/build/msvc-x64-release",
         "--completion-style=detailed",
         "--header-insertion=never"
     ]

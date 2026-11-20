@@ -8,15 +8,22 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 # libraries
 include_directories(${CMAKE_SOURCE_DIR}/src)
+include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/third_party)
 
 # imgui
 add_library(imgui STATIC
     ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui.cpp
+    ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_demo.cpp
     ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_draw.cpp
     ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_tables.cpp
     ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_widgets.cpp
-    ${CMAKE_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_glfw.cpp
-    ${CMAKE_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_vulkan.cpp
+    ${CMAKE_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_dx11.cpp
+    ${CMAKE_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_win32.cpp
+)
+
+target_include_directories(imgui PUBLIC
+    ${CMAKE_SOURCE_DIR}/third_party/imgui
+    ${CMAKE_SOURCE_DIR}/third_party/imgui/backends
 )
 
 add_compile_definitions(
@@ -64,4 +71,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     shell32
     user32
     gdi32
+    imgui
+    d3d11
 )
+
+# add_executable(test WIN32 ${CMAKE_CURRENT_SOURCE_DIR}/src/test.cpp)

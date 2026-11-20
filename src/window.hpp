@@ -35,7 +35,7 @@ private:
 
 template <typename Ctx>
 concept AppWindowContext = requires(Ctx &ctx, WindowHandle &win) {
-    { ctx.WndProc(win, UINT{}, LPARAM{}, WPARAM{}) } -> std::convertible_to<EventResult>;
+    { ctx.WndProc(win, UINT{}, WPARAM{}, LPARAM{}) } -> std::convertible_to<EventResult>;
 };
 
 template <AppWindowContext Ctx> class AppWindow {
@@ -82,6 +82,9 @@ public:
     AppWindow(AppWindow &&) noexcept = delete;
     auto operator=(AppWindow &&) noexcept = delete;
 
+    auto GetContext() const -> const Ctx & { return context_; }
+    auto GetContext() -> Ctx & { return context_; }
+
     auto GetWindowHandle() const -> HWND { return hwnd_; }
     auto GetWindowHandle() -> HWND { return hwnd_; }
 
@@ -89,8 +92,6 @@ private:
     class WindowClass final {
     public:
         WindowClass(HINSTANCE instance, std::wstring_view class_name) {
-            LogInfoW(L"registering window class");
-
             const WNDCLASSEXW wcex = {
                 .cbSize = sizeof(WNDCLASSEXW),
                 .style = CS_HREDRAW | CS_VREDRAW,
@@ -150,7 +151,7 @@ private:
                 break;
             }
 
-            result = window->context_.WndProc(handle, msg, l_param, w_param);
+            result = window->context_.WndProc(handle, msg, w_param, l_param);
         }
 
         if (result == EventResult::eDefault) {
