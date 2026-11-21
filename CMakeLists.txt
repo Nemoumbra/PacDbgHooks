@@ -40,7 +40,7 @@ set(SRC_FILE_LIST
 add_library(${PROJECT_NAME} SHARED ${SRC_FILE_LIST})
 
 # compile flags
-if (CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+if (MSVC)
     # cl.exe and clang-cl
     target_compile_options(${PROJECT_NAME} PRIVATE /W4)
 
@@ -71,6 +71,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     gdi32
     imgui
     d3d11
+    dxguid
+    d3dcompiler
+    dwmapi
 )
 
 # add_executable(test WIN32 ${CMAKE_CURRENT_SOURCE_DIR}/src/test.cpp)

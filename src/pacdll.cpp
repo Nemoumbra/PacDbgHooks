@@ -193,7 +193,8 @@ private:
 
     auto InitTarget() -> void {
         ComPtr<ID3D11Texture2D> back_buffer;
-        if (FAILED(dx_swapchain_->GetBuffer(0, IID_PPV_ARGS(&back_buffer)))) {
+        if (FAILED(dx_swapchain_->GetBuffer(
+                0, IID_ID3D11Texture2D, reinterpret_cast<void **>(back_buffer.GetAddressOf())))) {
             throw std::runtime_error{"GetBuffer failed"};
         }
 
@@ -309,12 +310,12 @@ auto WINAPI DllMain(HINSTANCE instance, DWORD dw_reason, [[maybe_unused]] LPVOID
 auto Init() -> void {
     g_ThreadStopEvent = ::CreateEventW(nullptr, TRUE, FALSE, nullptr);
     g_hDllInterfaceThread =
-        ::CreateThread(nullptr, NULL, reinterpret_cast<LPTHREAD_START_ROUTINE>(ThreadEntry), nullptr, NULL, nullptr);
+        ::CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(ThreadEntry), nullptr, NULL, nullptr);
 }
 
 auto Term() -> void {
     ::SetEvent(g_ThreadStopEvent);
-    ::OutputDebugStringW(L"stopping the window thread");
+    ::OutputDebugStringW(L"stopping the window thread\n");
     ::WaitForSingleObject(g_hDllInterfaceThread, INFINITE);
     ::CloseHandle(g_ThreadStopEvent);
     ::CloseHandle(g_hDllInterfaceThread);
@@ -322,5 +323,5 @@ auto Term() -> void {
     g_ThreadStopEvent = nullptr;
     g_hDllInterfaceThread = nullptr;
 
-    ::OutputDebugStringW(L"teardown complete");
+    ::OutputDebugStringW(L"teardown complete\n");
 }
