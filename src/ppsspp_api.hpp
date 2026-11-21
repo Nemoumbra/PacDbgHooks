@@ -69,6 +69,8 @@ public:
     void EnterStepping(MIPSState *mips, BreakReason reason, u32 relatedAddress) {
         funcs.EnterStepping(mips, reason, relatedAddress);
     }
+    CoreState GetCoreState() { return funcs.GetCoreState(); }
+    bool IsStepping() { return funcs.Core_IsStepping(); }
 
     void EmuLog(Log type, LogLevel level, const char *msg) { funcs.EmuLog(type, level, msg); }
     void OutputDebugStringUTF8(const char *msg) { funcs.OutputDebugStringUTF8(msg); }

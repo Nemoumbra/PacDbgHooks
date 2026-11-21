@@ -23,6 +23,7 @@ using v_u64u32 = void (*)(u64, u32);
 using v_f32u32 = void (*)(float, u32);
 
 using BreakFunc = void (*)(MIPSState *, BreakReason, u32);
+using CoreStateFunc = CoreState (*)();
 
 using EmuLogFunc = void (*)(Log, LogLevel, const char *);
 using OutputDebugStrFunc = void (*)(const char *);
@@ -90,6 +91,7 @@ struct EmuFuncs {
     func_sig::v_f32u32 WriteUnchecked_Float;
 
     func_sig::BreakFunc EnterStepping;
+    func_sig::CoreStateFunc GetCoreState;
 
     func_sig::EmuLogFunc EmuLog;
     func_sig::OutputDebugStrFunc OutputDebugStringUTF8;
@@ -143,5 +145,10 @@ struct EmuFuncs {
 
     inline void MemcpyUnchecked(const u32 to_address, const u32 from_address, const u32 len) {
         MemcpyUnchecked(GetPointerWriteUnchecked(to_address), from_address, len);
+    }
+
+    bool Core_IsStepping() {
+        const CoreState state = GetCoreState();
+        return state == CORE_STEPPING_CPU || state == CORE_STEPPING_GE || state == CORE_POWERDOWN;
     }
 };

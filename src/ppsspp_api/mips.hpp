@@ -3,6 +3,27 @@
 #include "CommonTypes.h"
 #include "ppsspp_config.h"
 
+// RUNNING must be at 0, NEXTFRAME must be at 1.
+enum CoreState {
+    // Emulation is running normally.
+    CORE_RUNNING_CPU = 0,
+    // Emulation was running normally, just reached the end of a frame.
+    CORE_NEXTFRAME,
+    // Set this when running to bounce out from the dispatcher and just go back in again. Useful for things like cache
+    // clears.
+    CORE_REENTER_DISPATCH,
+    // Emulation is paused, CPU thread is sleeping.
+    CORE_STEPPING_CPU, // Can be used for recoverable runtime errors (ignored memory exceptions)
+    // Core is not running.
+    CORE_POWERDOWN,
+    // Unrecoverable runtime error. Recoverable errors should use CORE_STEPPING.
+    CORE_RUNTIME_ERROR,
+    // Stepping the GPU. When done, will switch over to STEPPING_CPU.
+    CORE_STEPPING_GE,
+    // Running the GPU. When done, will switch over to RUNNING_CPU.
+    CORE_RUNNING_GE,
+};
+
 // Must be set when breaking.
 enum class BreakReason {
     None,
