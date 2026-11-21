@@ -310,7 +310,7 @@ auto WINAPI DllMain(HINSTANCE instance, DWORD dw_reason, [[maybe_unused]] LPVOID
 auto Init() -> void {
     g_ThreadStopEvent = ::CreateEventW(nullptr, TRUE, FALSE, nullptr);
     g_hDllInterfaceThread =
-        ::CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(ThreadEntry), nullptr, NULL, nullptr);
+        ::CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(ThreadEntry), nullptr, 0, nullptr);
 }
 
 auto Term() -> void {
