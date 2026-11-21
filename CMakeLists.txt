@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.20)
 project(pacdll VERSION 1.0.0)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -42,7 +42,7 @@ add_library(${PROJECT_NAME} SHARED ${SRC_FILE_LIST})
 # compile flags
 if (MSVC)
     # cl.exe and clang-cl
-    target_compile_options(${PROJECT_NAME} PRIVATE /W4)
+    target_compile_options(${PROJECT_NAME} PRIVATE /W3)
 
     set(SUBSYSTEM_LINKER_OPTIONS 
         /SUBSYSTEM:WINDOWS

@@ -15,6 +15,7 @@
 
 #include "pacdll.hpp"
 #include "window.hpp"
+#include "ppsspp_api.hpp"
 
 using Microsoft::WRL::ComPtr;
 
@@ -257,6 +258,8 @@ HANDLE g_hDllInterfaceThread = nullptr;
 HANDLE g_ThreadStopEvent = nullptr;
 HINSTANCE g_hCurrentModule = nullptr;
 
+EmuApi g_emu;
+
 auto WINAPI ThreadEntry([[maybe_unused]] LPVOID lp_param) -> DWORD {
     std::unique_ptr<util::AppWindow<Context>> app = nullptr;
 
@@ -307,10 +310,19 @@ auto WINAPI DllMain(HINSTANCE instance, DWORD dw_reason, [[maybe_unused]] LPVOID
     return TRUE;
 }
 
-auto Init() -> void {
+auto Init(EmuFuncs &funcs) -> void {
     g_ThreadStopEvent = ::CreateEventW(nullptr, TRUE, FALSE, nullptr);
     g_hDllInterfaceThread =
         ::CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(ThreadEntry), nullptr, 0, nullptr);
+
+    g_emu.LoadFuncs(funcs);
+}
+
+auto Hook(PacState &state, MIPSState &mips) -> void {
+    if (state.cur_block().get_top().file_name == "bases") {
+        g_emu.EmuLog(Log::Printf, LogLevel::LNOTICE, "Hi from the handler!");
+        g_emu.EnterStepping(&mips, BreakReason::HLEDebugBreak, 0);
+    }
 }
 
 auto Term() -> void {
