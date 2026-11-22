@@ -318,10 +318,79 @@ auto Init(EmuFuncs &funcs) -> void {
     g_emu.LoadFuncs(funcs);
 }
 
+// TODO: move elsewhere
+void FormatPacLine(char *buf, size_t len, const PacState &state, const PacPosition &pos) {
+    if (pos.file_name.has_value()) {
+        snprintf(
+            buf, len, "PAC: %s (%.*s:0x%x) id %d blk %d", pos.instruction_name, STR_VIEW(*pos.file_name), pos.offset,
+            state.ctx_id, state.blk);
+
+    } else {
+        snprintf(
+            buf, len, "PAC: %s (unk_0x%x:0x%x) id %d blk %d", pos.instruction_name, pos.file_size, pos.offset,
+            state.ctx_id, state.blk);
+    }
+}
+
+void GenericDefaultPacLog(Log type, LogLevel level, const PacState &state, const PacPosition &pos) {
+    char buf[1024];
+    FormatPacLine(buf, sizeof(buf), state, pos);
+    g_emu.EmuLog(type, level, buf);
+}
+
+void ErrorDefaultPacLog(Log type, const PacState &state, const PacPosition &pos) {
+    GenericDefaultPacLog(type, LogLevel::LERROR, state, pos);
+}
+void WarnDefaultPacLog(Log type, const PacState &state, const PacPosition &pos) {
+    GenericDefaultPacLog(type, LogLevel::LWARNING, state, pos);
+}
+void InfoDefaultPacLog(Log type, const PacState &state, const PacPosition &pos) {
+    GenericDefaultPacLog(type, LogLevel::LINFO, state, pos);
+}
+void NoticeDefaultPacLog(Log type, const PacState &state, const PacPosition &pos) {
+    GenericDefaultPacLog(type, LogLevel::LNOTICE, state, pos);
+}
+void DebugDefaultPacLog(Log type, const PacState &state, const PacPosition &pos) {
+    GenericDefaultPacLog(type, LogLevel::LDEBUG, state, pos);
+}
+void VerboseDefaultPacLog(Log type, const PacState &state, const PacPosition &pos) {
+    GenericDefaultPacLog(type, LogLevel::LVERBOSE, state, pos);
+}
+
 auto Hook(PacState &state, MIPSState &mips) -> void {
-    if (state.cur_block().get_top().file_name == "bases") {
-        g_emu.EmuLog(Log::Printf, LogLevel::LNOTICE, "Hi from the handler!");
-        g_emu.EnterStepping(&mips, BreakReason::HLEDebugBreak, 0);
+    const auto &top = state.top();
+
+    // if (state.top().file_name == "bases") {
+    //     g_emu.EmuLog(Log::Printf, LogLevel::LNOTICE, "Hi from the handler!");
+    //     g_emu.EnterStepping(&mips, BreakReason::HLEDebugBreak, 0);
+    // }
+
+    // if (top.offset == 0x0 && top.file_name == "dlc_0001") {
+    //     // Patch!
+    //     g_emu.WriteUncheckedFloat(-700.0f, top.pac_start + 0x6C0);
+    //     g_emu.WriteUncheckedU32(0x0, top.pac_start + 0x7E0);
+    //     g_emu.WriteUncheckedFloat(-700.0f, top.pac_start + 0x834);
+    //     g_emu.WriteUncheckedU32(0x0, top.pac_start + 0x954);
+    //     g_emu.WriteUncheckedFloat(-700.0f, top.pac_start + 0x9A8);
+    //     g_emu.WriteUncheckedU32(0x0, top.pac_start + 0xAC8);
+    //     g_emu.WriteUncheckedFloat(-700.0f, top.pac_start + 0xB1C);
+    //     g_emu.WriteUncheckedU32(0x2, top.pac_start + 0xC3C);
+    //     g_emu.WriteUncheckedFloat(-700.0f, top.pac_start + 0xC90);
+    //     g_emu.WriteUncheckedU32(0x0, top.pac_start + 0xDB0);
+
+    //     g_emu.EmuLog(Log::Printf, LogLevel::LNOTICE, "Patched the 50 Cyclops DLC PAC!");
+    //     return;
+    // }
+
+    // if (top.offset == 0xDB8 && top.file_name == "dlc_0001") {
+    //     g_emu.EmuLog(Log::Printf, LogLevel::LNOTICE, "Death call for the cyclops executed!");
+    //     g_emu.EnterStepping(&mips, BreakReason::HLEDebugBreak, 0);
+    // }
+
+    if (top.get_class_id() == 0x3) {
+        NoticeDefaultPacLog(Log::Printf, state, top);
+    } else {
+        InfoDefaultPacLog(Log::Printf, state, top);
     }
 }
 

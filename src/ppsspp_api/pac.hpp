@@ -8,6 +8,11 @@
 inline constexpr u32 MAKE_PAC_SIGNATURE(u8 class_id, u16 instr_id) {
     return (0x25 << 24) | (class_id << 16) | (instr_id & 0xFF) << 8 | (instr_id >> 8);
 }
+inline constexpr u8 PAC_CLASS_ID(u32 signature) { return (signature >> 16) & 0xFF; }
+inline constexpr u16 PAC_INSTR_ID(u32 signature) {
+    u16 byteswapped = signature & 0xFFFF;
+    return (byteswapped & 0xFF) << 8 | (byteswapped >> 8);
+}
 
 struct PacPosition {
     u32 pac_start;
@@ -18,6 +23,8 @@ struct PacPosition {
     const char *instruction_name;
 
     u32 get_pc() const { return pac_start + offset; }
+    u8 get_class_id() const { return PAC_CLASS_ID(instruction_signature); }
+    u16 get_instr_id() const { return PAC_INSTR_ID(instruction_signature); }
 };
 
 struct PacExecBlock {
