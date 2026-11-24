@@ -75,3 +75,5 @@ public:
     void EmuLog(Log type, LogLevel level, const char *msg) { funcs.EmuLog(type, level, msg); }
     void OutputDebugStringUTF8(const char *msg) { funcs.OutputDebugStringUTF8(msg); }
 };
+
+extern EmuApi g_emu;

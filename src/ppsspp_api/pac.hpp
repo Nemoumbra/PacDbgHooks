@@ -14,6 +14,23 @@ inline constexpr u16 PAC_INSTR_ID(u32 signature) {
     return (byteswapped & 0xFF) << 8 | (byteswapped >> 8);
 }
 
+struct PacFlags {
+    u32 ptr;
+    u32 capacity;
+};
+struct PacVars {
+    u32 iptr;
+    u32 icount;
+
+    u32 fptr;
+    u32 fcount;
+};
+struct PacArray {
+    u32 ptr;
+    u32 count;
+    u32 current;
+};
+
 struct PacPosition {
     u32 pac_start;
     u32 offset;
@@ -51,6 +68,11 @@ struct PacState {
 
     u32 blk;
     PacExecBlock blocks[3];
+
+    PacFlags flags;
+    PacVars globals;
+    PacVars locals;
+    PacArray array;
 
     const PacExecBlock &get_block(u32 index) const {
         // _assert_msg_(index < 3, "Invalid PAC block requested: %d", index);

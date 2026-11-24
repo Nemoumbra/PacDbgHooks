@@ -3,6 +3,7 @@
 #include <cmath>
 #include <memory>
 #include <optional>
+#include <unordered_set>
 
 #include <Windows.h>
 
@@ -16,6 +17,7 @@
 #include "pacdll.hpp"
 #include "window.hpp"
 #include "ppsspp_api.hpp"
+#include "pac_api.hpp"
 
 using Microsoft::WRL::ComPtr;
 
@@ -258,8 +260,6 @@ HANDLE g_hDllInterfaceThread = nullptr;
 HANDLE g_ThreadStopEvent = nullptr;
 HINSTANCE g_hCurrentModule = nullptr;
 
-EmuApi g_emu;
-
 auto WINAPI ThreadEntry([[maybe_unused]] LPVOID lp_param) -> DWORD {
     std::unique_ptr<util::AppWindow<Context>> app = nullptr;
 
@@ -367,16 +367,16 @@ auto Hook(PacState &state, MIPSState &mips) -> void {
 
     // if (top.offset == 0x0 && top.file_name == "dlc_0001") {
     //     // Patch!
-    //     g_emu.WriteUncheckedFloat(-700.0f, top.pac_start + 0x6C0);
-    //     g_emu.WriteUncheckedU32(0x0, top.pac_start + 0x7E0);
-    //     g_emu.WriteUncheckedFloat(-700.0f, top.pac_start + 0x834);
-    //     g_emu.WriteUncheckedU32(0x0, top.pac_start + 0x954);
-    //     g_emu.WriteUncheckedFloat(-700.0f, top.pac_start + 0x9A8);
-    //     g_emu.WriteUncheckedU32(0x0, top.pac_start + 0xAC8);
-    //     g_emu.WriteUncheckedFloat(-700.0f, top.pac_start + 0xB1C);
-    //     g_emu.WriteUncheckedU32(0x2, top.pac_start + 0xC3C);
-    //     g_emu.WriteUncheckedFloat(-700.0f, top.pac_start + 0xC90);
-    //     g_emu.WriteUncheckedU32(0x0, top.pac_start + 0xDB0);
+    //     g_emu.WriteUncheckedFloat(-700.0f, PAC_ADDR(0x6C0));
+    //     g_emu.WriteUncheckedU32(0x0, PAC_ADDR(0x7E0));
+    //     g_emu.WriteUncheckedFloat(-700.0f, PAC_ADDR(0x834));
+    //     g_emu.WriteUncheckedU32(0x0, PAC_ADDR(0x954));
+    //     g_emu.WriteUncheckedFloat(-700.0f, PAC_ADDR(0x9A8));
+    //     g_emu.WriteUncheckedU32(0x0, PAC_ADDR(0xAC8));
+    //     g_emu.WriteUncheckedFloat(-700.0f, PAC_ADDR(0xB1C));
+    //     g_emu.WriteUncheckedU32(0x2, PAC_ADDR(0xC3C));
+    //     g_emu.WriteUncheckedFloat(-700.0f, PAC_ADDR(0xC90));
+    //     g_emu.WriteUncheckedU32(0x0, PAC_ADDR(0xDB0));
 
     //     g_emu.EmuLog(Log::Printf, LogLevel::LNOTICE, "Patched the 50 Cyclops DLC PAC!");
     //     return;
@@ -387,10 +387,54 @@ auto Hook(PacState &state, MIPSState &mips) -> void {
     //     g_emu.EnterStepping(&mips, BreakReason::HLEDebugBreak, 0);
     // }
 
-    if (top.get_class_id() == 0x3) {
-        NoticeDefaultPacLog(Log::Printf, state, top);
-    } else {
+    // if (top.get_class_id() == 0x3) {
+    //     NoticeDefaultPacLog(Log::Printf, state, top);
+    // } else {
+    //     InfoDefaultPacLog(Log::Printf, state, top);
+    // }
+
+    // {
+    //     static std::unordered_set<u32> should_log;
+    //     const u8 class_id = top.get_class_id();
+    //     if (class_id == 0x3) {
+    //         should_log.emplace(state.ctx_id);
+    //     }
+
+    //     if (should_log.count(state.ctx_id) != 0) {
+    //         if (class_id == 0x3) {
+    //             NoticeDefaultPacLog(Log::Printf, state, top);
+    //         } else {
+    //             InfoDefaultPacLog(Log::Printf, state, top);
+    //         }
+    //     }
+    // }
+
+    static int log_ahead_count = 0;
+
+    if (top.instruction_signature == 0x25002E00) {
+        const u32 args_count = g_emu.ReadUncheckedU32(top.get_pc() + 0x8);
+        if (args_count == 1) {
+            const u32 flg_id = g_emu.ReadUncheckedU32(top.get_pc() + 0xC);
+            if (flg_id == 0x397) {
+                pac::enable_flag(state, flg_id);
+                // log_ahead_count = 16;
+            }
+        }
+    }
+    if (top.offset == 0xD4 && top.file_name == "azito") {
+        g_emu.EmuLog(Log::Printf, LogLevel::LNOTICE, "TFLAG_SYS_DEBUG_START_LOCK enabled");
+    }
+    // if (top.offset == 0x2D948 && top.file_name == "azito") {
+    //     log_ahead_count = 16;
+    // }
+
+    if (log_ahead_count > 1) {
+        --log_ahead_count;
         InfoDefaultPacLog(Log::Printf, state, top);
+    } else if (log_ahead_count == 1) {
+        --log_ahead_count;
+        InfoDefaultPacLog(Log::Printf, state, top);
+        g_emu.EmuLog(Log::Printf, LogLevel::LNOTICE, "--------------------------------------------");
     }
 }
 
