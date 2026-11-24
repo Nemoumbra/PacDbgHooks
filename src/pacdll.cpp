@@ -86,6 +86,11 @@ public:
             return;
         }
 
+        if (minimized_state_) {
+            ::WaitMessage();
+            return;
+        }
+
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
@@ -215,8 +220,11 @@ private:
         LONG height = client_rect.bottom - client_rect.top;
 
         if (!dx_swapchain_ || width <= 0 || height <= 0) {
+            minimized_state_ = true;
             return;
         }
+
+        minimized_state_ = false;
 
         ID3D11RenderTargetView *null_view = nullptr;
         dx_dev_ctx_->OMSetRenderTargets(1, &null_view, nullptr);
@@ -247,7 +255,9 @@ private:
     }
 
     std::chrono::steady_clock::time_point start_time_;
+
     bool size_move_state_ = false;
+    bool minimized_state_ = false;
 
     ComPtr<ID3D11Device> dx_devie_;
     ComPtr<ID3D11DeviceContext> dx_dev_ctx_;
