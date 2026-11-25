@@ -245,6 +245,27 @@ private:
         }
     };
 
+    static inline auto ToHex(u32 value) -> std::string {
+        std::string output(11, '\0');
+        std::format_to(output.data(), "0x{:08x}", value);
+
+        return output;
+    }
+
+    static inline auto TableField(u32 value) -> void {
+        const auto value_str = ToHex(value);
+        if (ImGui::Selectable(value_str.c_str())) {
+            ImGui::SetClipboardText(value_str.c_str());
+        }
+    }
+
+    static inline auto TableField(float value) -> void {
+        const auto value_str = std::to_string(value);
+        if (ImGui::Selectable(value_str.c_str())) {
+            ImGui::SetClipboardText(value_str.c_str());
+        }
+    }
+
     auto RenderInterface() -> void {
         ImGuiViewport *vp = ImGui::GetMainViewport();
 
@@ -322,7 +343,10 @@ private:
                 ImGui::TableSetColumnIndex(0);
                 ImGui::TextUnformatted(name);
                 ImGui::TableSetColumnIndex(1);
-                ImGui::Text("0x%08x", value);
+
+                ImGui::PushID(ImGui::GetID(std::format("{}_val", name).c_str()));
+                TableField(value);
+                ImGui::PopID();
             };
 
             fnPrintRow("ptr_base", pac_state.ptr_base);
@@ -347,24 +371,33 @@ private:
         }
 
         if (ImGui::BeginTable(
-                "globals_ints", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit)) {
+                "globals_ints", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit)) {
+            ImGui::TableSetupColumn("Name");
             ImGui::TableSetupColumn("Address");
             ImGui::TableSetupColumn("Value");
             ImGui::TableHeadersRow();
 
-            auto fnPrintRow = [](u32 offset, u32 value) {
+            auto fnPrintRow = [](u32 idx, u32 offset, u32 value) {
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
-                ImGui::Text("0x%08x", offset);
+                ImGui::Text("TIG_%d", idx);
+
                 ImGui::TableSetColumnIndex(1);
-                ImGui::Text("0x%08x", value);
+                ImGui::PushID(offset);
+                TableField(offset);
+                ImGui::PopID();
+
+                ImGui::TableSetColumnIndex(2);
+                ImGui::PushID(offset + 1);
+                TableField(value);
+                ImGui::PopID();
             };
 
             for (u32 i = 0; i < pac_state.num_ints; ++i) {
                 const u32 ptr = pac_state.ptr_ints + (i * sizeof(u32));
                 const s32 val = std::bit_cast<s32>(g_emu.ReadUncheckedU32(ptr));
 
-                fnPrintRow(ptr, val);
+                fnPrintRow(i, ptr, val);
             }
 
             ImGui::EndTable();
@@ -378,24 +411,33 @@ private:
         }
 
         if (ImGui::BeginTable(
-                "globals_ints", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit)) {
+                "globals_ints", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit)) {
+            ImGui::TableSetupColumn("Name");
             ImGui::TableSetupColumn("Address");
             ImGui::TableSetupColumn("Value");
             ImGui::TableHeadersRow();
 
-            auto fnPrintRow = [](u32 offset, float value) {
+            auto fnPrintRow = [](u32 idx, u32 offset, float value) {
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
-                ImGui::Text("0x%08x", offset);
+                ImGui::Text("TFG_%d", idx);
+
                 ImGui::TableSetColumnIndex(1);
-                ImGui::Text("%f", value);
+                ImGui::PushID(offset);
+                TableField(offset);
+                ImGui::PopID();
+
+                ImGui::TableSetColumnIndex(2);
+                ImGui::PushID(offset + 1);
+                TableField(value);
+                ImGui::PopID();
             };
 
             for (u32 i = 0; i < pac_state.num_flts; ++i) {
                 const u32 ptr = pac_state.ptr_flts + (i * 4);
                 const float val = g_emu.ReadUncheckedFloat(ptr);
 
-                fnPrintRow(ptr, val);
+                fnPrintRow(i, ptr, val);
             }
 
             ImGui::EndTable();
