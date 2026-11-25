@@ -214,6 +214,37 @@ private:
         }
     }
 
+    struct PacManagerState {
+        u32 ptr_base = 0;
+        u32 ptr_flags = 0;
+        u32 num_flags = 0;
+        u32 ptr_ints = 0;
+        u32 num_ints = 0;
+        u32 ptr_flts = 0;
+        u32 num_flts = 0;
+        u32 ptr_array = 0;
+        u32 cap_array = 0;
+        u32 sp_array = 0;
+
+        auto InitFromEmuMemory() -> void {
+            ptr_base = g_emu.ReadUncheckedU32(PacSingleton::base);
+
+            if (ptr_base == 0) {
+                return;
+            }
+
+            ptr_flags = g_emu.ReadUncheckedU32(ptr_base + PacSingleton::flags_p);
+            num_flags = g_emu.ReadUncheckedU32(ptr_base + PacSingleton::flags_n);
+            ptr_ints = g_emu.ReadUncheckedU32(ptr_base + PacSingleton::global_p_ints);
+            num_ints = g_emu.ReadUncheckedU32(ptr_base + PacSingleton::global_n_ints);
+            ptr_flts = g_emu.ReadUncheckedU32(ptr_base + PacSingleton::global_p_flts);
+            num_flts = g_emu.ReadUncheckedU32(ptr_base + PacSingleton::global_n_flts);
+            ptr_array = g_emu.ReadUncheckedU32(ptr_base + PacSingleton::array_p);
+            cap_array = g_emu.ReadUncheckedU32(ptr_base + PacSingleton::array_cap);
+            sp_array = g_emu.ReadUncheckedU32(ptr_base + PacSingleton::array_sp);
+        }
+    };
+
     auto RenderInterface() -> void {
         ImGuiViewport *vp = ImGui::GetMainViewport();
 
@@ -237,36 +268,48 @@ private:
         if (ImGui::DockBuilderGetNode(dockspace_id) == nullptr) {
             ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
             ImGui::DockBuilderSetNodeSize(dockspace_id, vp->WorkSize);
-            ImGui::DockBuilderDockWindow("Debugger", dockspace_id);
+
+            ImGuiID pane_upper, pane_lower_left, pane_lower_right;
+            ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Up, 0.25f, &pane_upper, &pane_lower_left);
+            ImGui::DockBuilderSplitNode(pane_lower_left, ImGuiDir_Left, 0.5f, &pane_lower_left, &pane_lower_right);
+
+            ImGui::DockBuilderDockWindow("Manager", pane_upper);
+            ImGui::DockBuilderDockWindow("Globals (int)", pane_lower_left);
+            ImGui::DockBuilderDockWindow("Globals (float)", pane_lower_right);
+
             ImGui::DockBuilderFinish(dockspace_id);
         }
 
         ImGui::DockSpace(dockspace_id, ImVec2{0, 0}, ImGuiDockNodeFlags_PassthruCentralNode);
         ImGui::End();
 
-        if (ImGui::Begin("Debugger")) {
-            const u32 ptr_base = g_emu.ReadUncheckedU32(PacSingleton::base);
+        PacManagerState pac_mgr_state = {};
+        pac_mgr_state.InitFromEmuMemory();
 
-            if (ptr_base != 0) {
-                RenderPacState(ptr_base);
-            } else {
-                ImGui::Text("not yet initialized");
-            }
+        if (ImGui::Begin("Manager")) {
+            RenderPacManagerState(pac_mgr_state);
+        }
+
+        ImGui::End();
+
+        if (ImGui::Begin("Globals (int)")) {
+            RenderPacIntGlobals(pac_mgr_state);
+        }
+
+        ImGui::End();
+
+        if (ImGui::Begin("Globals (float)")) {
+            RenderPacFltGlobals(pac_mgr_state);
         }
 
         ImGui::End();
     }
 
-    auto RenderPacState(u32 ptr_base) -> void {
-        const u32 ptr_flags = g_emu.ReadUncheckedU32(ptr_base + PacSingleton::flags_p);
-        const u32 num_flags = g_emu.ReadUncheckedU32(ptr_base + PacSingleton::flags_n);
-        const u32 ptr_ints = g_emu.ReadUncheckedU32(ptr_base + PacSingleton::global_p_ints);
-        const u32 num_ints = g_emu.ReadUncheckedU32(ptr_base + PacSingleton::global_n_ints);
-        const u32 ptr_flts = g_emu.ReadUncheckedU32(ptr_base + PacSingleton::global_p_flts);
-        const u32 num_flts = g_emu.ReadUncheckedU32(ptr_base + PacSingleton::global_n_flts);
-        const u32 ptr_array = g_emu.ReadUncheckedU32(ptr_base + PacSingleton::array_p);
-        const u32 cap_array = g_emu.ReadUncheckedU32(ptr_base + PacSingleton::array_cap);
-        const u32 sp_array = g_emu.ReadUncheckedU32(ptr_base + PacSingleton::array_sp);
+    auto RenderPacManagerState(const PacManagerState &pac_state) -> void {
+        if (pac_state.ptr_base == 0) {
+            ImGui::TextUnformatted("not yet initialized");
+            return;
+        }
 
         if (ImGui::BeginTable(
                 "pac_manager", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit)) {
@@ -282,72 +325,80 @@ private:
                 ImGui::Text("0x%08x", value);
             };
 
-            fnPrintRow("ptr_base", ptr_base);
-            fnPrintRow("ptr_flags", ptr_flags);
-            fnPrintRow("num_flags", num_flags);
-            fnPrintRow("ptr_ints", ptr_ints);
-            fnPrintRow("num_ints", num_ints);
-            fnPrintRow("ptr_flts", ptr_flts);
-            fnPrintRow("num_flts", num_flts);
-            fnPrintRow("ptr_array", ptr_array);
-            fnPrintRow("cap_array", cap_array);
-            fnPrintRow("sp_array", sp_array);
+            fnPrintRow("ptr_base", pac_state.ptr_base);
+            fnPrintRow("ptr_flags", pac_state.ptr_flags);
+            fnPrintRow("num_flags", pac_state.num_flags);
+            fnPrintRow("ptr_ints", pac_state.ptr_ints);
+            fnPrintRow("num_ints", pac_state.num_ints);
+            fnPrintRow("ptr_flts", pac_state.ptr_flts);
+            fnPrintRow("num_flts", pac_state.num_flts);
+            fnPrintRow("ptr_array", pac_state.ptr_array);
+            fnPrintRow("cap_array", pac_state.cap_array);
+            fnPrintRow("sp_array", pac_state.sp_array);
 
             ImGui::EndTable();
         }
+    }
 
-        if (ImGui::CollapsingHeader("Globals (int)")) {
-            if (ImGui::BeginTable(
-                    "globals_ints", 2,
-                    ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit)) {
-                ImGui::TableSetupColumn("Address");
-                ImGui::TableSetupColumn("Value");
-                ImGui::TableHeadersRow();
-
-                auto fnPrintRow = [](u32 offset, u32 value) {
-                    ImGui::TableNextRow();
-                    ImGui::TableSetColumnIndex(0);
-                    ImGui::Text("0x%08x", offset);
-                    ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("0x%08x", value);
-                };
-
-                for (u32 i = 0; i < num_ints; ++i) {
-                    const u32 ptr = ptr_ints + (i * sizeof(u32));
-                    const s32 val = std::bit_cast<s32>(g_emu.ReadUncheckedU32(ptr));
-
-                    fnPrintRow(ptr, val);
-                }
-
-                ImGui::EndTable();
-            }
+    auto RenderPacIntGlobals(const PacManagerState &pac_state) -> void {
+        if (pac_state.ptr_ints == 0) {
+            ImGui::TextUnformatted("not yet initialized");
+            return;
         }
 
-        if (ImGui::CollapsingHeader("Globals (float)")) {
-            if (ImGui::BeginTable(
-                    "globals_ints", 2,
-                    ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit)) {
-                ImGui::TableSetupColumn("Address");
-                ImGui::TableSetupColumn("Value");
-                ImGui::TableHeadersRow();
+        if (ImGui::BeginTable(
+                "globals_ints", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit)) {
+            ImGui::TableSetupColumn("Address");
+            ImGui::TableSetupColumn("Value");
+            ImGui::TableHeadersRow();
 
-                auto fnPrintRow = [](u32 offset, float value) {
-                    ImGui::TableNextRow();
-                    ImGui::TableSetColumnIndex(0);
-                    ImGui::Text("0x%08x", offset);
-                    ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("%f", value);
-                };
+            auto fnPrintRow = [](u32 offset, u32 value) {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("0x%08x", offset);
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("0x%08x", value);
+            };
 
-                for (u32 i = 0; i < num_flts; ++i) {
-                    const u32 ptr = ptr_flts + (i * 4);
-                    const float val = g_emu.ReadUncheckedFloat(ptr);
+            for (u32 i = 0; i < pac_state.num_ints; ++i) {
+                const u32 ptr = pac_state.ptr_ints + (i * sizeof(u32));
+                const s32 val = std::bit_cast<s32>(g_emu.ReadUncheckedU32(ptr));
 
-                    fnPrintRow(ptr, val);
-                }
-
-                ImGui::EndTable();
+                fnPrintRow(ptr, val);
             }
+
+            ImGui::EndTable();
+        }
+    }
+
+    auto RenderPacFltGlobals(const PacManagerState &pac_state) -> void {
+        if (pac_state.ptr_flts == 0) {
+            ImGui::TextUnformatted("not yet initialized");
+            return;
+        }
+
+        if (ImGui::BeginTable(
+                "globals_ints", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit)) {
+            ImGui::TableSetupColumn("Address");
+            ImGui::TableSetupColumn("Value");
+            ImGui::TableHeadersRow();
+
+            auto fnPrintRow = [](u32 offset, float value) {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("0x%08x", offset);
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("%f", value);
+            };
+
+            for (u32 i = 0; i < pac_state.num_flts; ++i) {
+                const u32 ptr = pac_state.ptr_flts + (i * 4);
+                const float val = g_emu.ReadUncheckedFloat(ptr);
+
+                fnPrintRow(ptr, val);
+            }
+
+            ImGui::EndTable();
         }
     }
 
@@ -438,7 +489,7 @@ auto WINAPI ThreadEntry([[maybe_unused]] LPVOID lp_param) -> DWORD {
         app = std::make_unique<util::AppWindow<Context>>(
             g_hCurrentModule,
             util::AppWindow<Context>::Description{
-                .window_name = L"hello world",
+                .window_name = L"PAC debugger",
             },
             Context{});
     } catch (const std::exception &e) {
